@@ -44,26 +44,47 @@ static ssize_t dev_write(struct file *file, const char __user *userBuf, size_t l
     return bytes_to_write;
 }
 
-static long dev_ioctl(struct file *file, unsigned int cmd, unsigned long arg){
+static long dev_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
+{
     int len;
 
-    switch(cmd){
-        case CHARDEV_IOCTL_CLEAR:
-            memset(deviceBuf, 0, BUFFER_SIZE);
-            bufferLen = 0;
-            printk(KERN_INFO "Cleared buffer.\n");
-            return 0;
-        case CHARDEV_IOCTL_GETLEN:
-            len = (int) bufferLen;
-            if (copy_to_user((int __user *)arg, &len, sizeof(len))) return -EFAULT;
-            printk(KERN_INFO "Returned buffer length.\n");
-            return 0;
-        default:
-            printk(KERN_ERR "Invalid ioctl command.\n");
-            return -ENOTTY;
+    switch (cmd) {
+    case CHARDEV_IOCTL_CLEAR:
+        memset(deviceBuffer, 0, BUFFER_SIZE);
+        bufferLen = 0;
+        printk(KERN_INFO "Cleared buffer.\n");
+        return 0;
+
+    case CHARDEV_IOCTL_GETLEN:
+        len = (int)bufferLen;
+
+        if (copy_to_user((int __user *)arg, &len, sizeof(len)))
+            return -EFAULT;
+
+        printk(KERN_INFO "Returned buffer length.\n");
+        return 0;
+
+    case CHARDEV_IOCTL_SETLEN:
+    {
+        int new_len;
+
+        if (copy_from_user(&new_len, (int __user *)arg, sizeof(new_len)))
+            return -EFAULT;
+
+        if (new_len < 0 || new_len > BUFFER_SIZE - 1)
+            return -EINVAL;
+
+        bufferLen = (size_t)new_len;
+        deviceBuffer[bufferLen] = '\0';
+
+        printk(KERN_INFO "Set buffer length to %zu.\n", bufferLen);
+        return 0;
     }
 
-    return 0;
+    default:
+        printk(KERN_ERR "Invalid ioctl command.\n");
+        return -ENOTTY;
+    }
 }
 
 static const struct file_operations fops = {
