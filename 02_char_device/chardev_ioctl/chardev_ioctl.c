@@ -5,6 +5,7 @@
 #include <linux/device.h>
 #include <linux/cdev.h>
 #include <linux/uaccess.h>
+#include "chardev_ioctl.h"
 
 #define BUFFER_SIZE 128
 static size_t bufferLen;
@@ -43,12 +44,35 @@ static ssize_t dev_write(struct file *file, const char __user *userBuf, size_t l
     return bytes_to_write;
 }
 
+static long dev_ioctl(struct file *file, unsigned int cmd, unsigned long arg){
+    int len;
+
+    switch(cmd){
+        case CHARDEV_IOCTL_CLEAR:
+            memset(deviceBuf, 0, BUFFER_SIZE);
+            bufferLen = 0;
+            printk(KERN_INFO "Cleared buffer.\n");
+            return 0;
+        case CHARDEV_IOCTL_GETLEN:
+            len = (int) bufferLen;
+            if (copy_to_user((int __user *)arg, &len, sizeof(len))) return -EFAULT;
+            printk(KERN_INFO "Returned buffer length.\n");
+            return 0;
+        default:
+            printk(KERN_ERR "Invalid ioctl command.\n");
+            return -ENOTTY;
+    }
+
+    return 0;
+}
+
 static const struct file_operations fops = {
     .owner = THIS_MODULE,
     .open = dev_open,
     .release = dev_close,
     .read = dev_read,
     .write = dev_write,
+    .unlocked_ioctl = dev_ioctl,
 };
 
 static int __init dev_init(void){
