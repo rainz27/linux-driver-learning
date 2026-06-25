@@ -8,6 +8,7 @@
 #include "chardev_ioctl.h"
 
 #define BUFFER_SIZE 128
+#define DEVICE_NAME "chardev"
 static size_t bufferLen;
 static char deviceBuf[BUFFER_SIZE];
 
@@ -46,7 +47,7 @@ static ssize_t dev_write(struct file *file, const char __user *userBuf, size_t l
 
 static long dev_ioctl(struct file *file, unsigned int cmd, unsigned long arg){
     int len;
-
+    printk(KERN_INFO "dev_ioctl called, cmd = 0x%x\n", cmd);
     switch(cmd){
         case CHARDEV_IOCTL_CLEAR:
             memset(deviceBuf, 0, BUFFER_SIZE);
@@ -58,6 +59,16 @@ static long dev_ioctl(struct file *file, unsigned int cmd, unsigned long arg){
             if (copy_to_user((int __user *)arg, &len, sizeof(len))) return -EFAULT;
             printk(KERN_INFO "Returned buffer length.\n");
             return 0;
+        case CHARDEV_IOCTL_SETLEN:
+        {
+            int newlen;
+            if (copy_from_user(&newlen, (int __user *)arg, sizeof(newlen))) return -EFAULT;
+            if (newlen < 0 || newlen > BUFFER_SIZE - 1) return -EINVAL;
+            bufferLen = (size_t)newlen;
+            deviceBuf[bufferLen] = '\0';
+            printk(KERN_INFO "Set buffer len to %zu.\n", bufferLen);
+            return 0; 
+        }
         default:
             printk(KERN_ERR "Invalid ioctl command.\n");
             return -ENOTTY;
@@ -78,7 +89,7 @@ static const struct file_operations fops = {
 static int __init dev_init(void){
     int ret;
     // Major / Minor
-    ret = alloc_chrdev_region(&deviceNum, 0, 1, "chardev"); // proc/dev
+    ret = alloc_chrdev_region(&deviceNum, 0, 1, DEVICE_NAME); // proc/dev
     if (ret < 0){
         printk(KERN_ERR "Failed to register the device number.\n");
         return ret;
