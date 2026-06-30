@@ -1,11 +1,12 @@
-#ifndef CHARDEV_IOCTL
-#define CHARDEV_IOCTL
+#ifndef USER_TEST_H
+#define USER_TEST_H
 
-#define DEVICE_NAME "chardev"
+#include <sys/ioctl.h>
+
 #define CHARDEV_IO_MAGIC 'x'
 
 #define CHARDEV_IOCTL_CLEAR _IO(CHARDEV_IO_MAGIC, 0)
 #define CHARDEV_IOCTL_GETLEN _IOR(CHARDEV_IO_MAGIC, 1, int)
 #define CHARDEV_IOCTL_SETLEN _IOW(CHARDEV_IO_MAGIC, 2, int)
 
-#endif // CHARDEV_IOCTL
+#endif // USER_TEST_H

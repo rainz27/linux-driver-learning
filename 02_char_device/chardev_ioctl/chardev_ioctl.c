@@ -8,6 +8,7 @@
 #include "chardev_ioctl.h"
 
 #define BUFFER_SIZE 128
+#define DEVICE_NAME "chardev"
 static size_t bufferLen;
 static char deviceBuf[BUFFER_SIZE];
 
@@ -99,7 +100,7 @@ static const struct file_operations fops = {
 static int __init dev_init(void){
     int ret;
     // Major / Minor
-    ret = alloc_chrdev_region(&deviceNum, 0, 1, "chardev"); // proc/dev
+    ret = alloc_chrdev_region(&deviceNum, 0, 1, DEVICE_NAME); // proc/dev
     if (ret < 0){
         printk(KERN_ERR "Failed to register the device number.\n");
         return ret;

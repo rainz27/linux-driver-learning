@@ -1,4 +1,4 @@
-obj-m += chardev_cdev_fops.o
+obj-m += chardev_full.o
 
 all:
 	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) modules
