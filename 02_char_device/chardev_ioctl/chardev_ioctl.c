@@ -8,7 +8,10 @@
 #include "chardev_ioctl.h"
 
 #define BUFFER_SIZE 128
+#define DEV_NAME "chardev"
+#define CLASS_NAME "chardev_class"
 #define DEVICE_NAME "chardev"
+
 static size_t bufferLen;
 static char deviceBuf[BUFFER_SIZE];
 
@@ -51,33 +54,29 @@ static long dev_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 
     switch (cmd) {
     case CHARDEV_IOCTL_CLEAR:
-        memset(deviceBuffer, 0, BUFFER_SIZE);
+        memset(deviceBuf, 0, BUFFER_SIZE);
         bufferLen = 0;
         printk(KERN_INFO "Cleared buffer.\n");
         return 0;
 
     case CHARDEV_IOCTL_GETLEN:
         len = (int)bufferLen;
-
         if (copy_to_user((int __user *)arg, &len, sizeof(len)))
             return -EFAULT;
-
         printk(KERN_INFO "Returned buffer length.\n");
         return 0;
 
     case CHARDEV_IOCTL_SETLEN:
     {
         int new_len;
-
-        if (copy_from_user(&new_len, (int __user *)arg, sizeof(new_len)))
+        if (copy_from_user(&new_len, (const int __user *)arg, sizeof(new_len)))
             return -EFAULT;
 
-        if (new_len < 0 || new_len > BUFFER_SIZE - 1)
+        if ((new_len < 0) || ((size_t)new_len > (BUFFER_SIZE - 1)))
             return -EINVAL;
 
         bufferLen = (size_t)new_len;
-        deviceBuffer[bufferLen] = '\0';
-
+        deviceBuf[bufferLen] = '\0';
         printk(KERN_INFO "Set buffer length to %zu.\n", bufferLen);
         return 0;
     }
@@ -100,7 +99,7 @@ static const struct file_operations fops = {
 static int __init dev_init(void){
     int ret;
     // Major / Minor
-    ret = alloc_chrdev_region(&deviceNum, 0, 1, DEVICE_NAME); // proc/dev
+    ret = alloc_chrdev_region(&deviceNum, 0, 1, DEV_NAME); // proc/devices -> chardev
     if (ret < 0){
         printk(KERN_ERR "Failed to register the device number.\n");
         return ret;
@@ -119,7 +118,7 @@ static int __init dev_init(void){
     }
 
     // Create class
-    chardevClass = class_create("chardev"); // sys/class
+    chardevClass = class_create(CLASS_NAME); // sys/class -> chardev_class
     if (IS_ERR(chardevClass)){
         printk(KERN_ERR "Failed to create device class.\n");
         cdev_del(&charDev);
@@ -128,7 +127,7 @@ static int __init dev_init(void){
     }
 
     // Create device
-    chardevDevice = device_create(chardevClass, NULL, deviceNum, NULL, "dev1"); // expose the instance to userspace
+    chardevDevice = device_create(chardevClass, NULL, deviceNum, NULL, DEVICE_NAME); // expose the instance to userspace
     if (IS_ERR(chardevDevice)){
         printk(KERN_ERR "Failed to create device instance.\n");
         class_destroy(chardevClass);
