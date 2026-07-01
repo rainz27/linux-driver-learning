@@ -7,7 +7,7 @@
 int main(void){
     int len;
     int setLen = 5;
-    int fd = open("/dev/dev1", O_RDWR);
+    int fd = open("/dev/chardev", O_RDWR);
     if (fd < 0){
         perror("open");
         return 1;
